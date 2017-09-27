@@ -17,7 +17,11 @@ int okclient(char ip[4])
   fn[3 + ip4_fmt(fn + 3,ip)] = 0;
 
   for (;;) {
-    if (stat(fn,&st) == 0) return 1;
+    /* check cache first and return success hit */
+    if (stat(fn,&st) == 0) {
+        /* add to cache */
+        return 1;
+    }
     /* treat temporary error as rejection */
     i = str_rchr(fn,'.');
     if (!fn[i]) return 0;
