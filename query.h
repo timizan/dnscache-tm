@@ -18,12 +18,13 @@ struct query {
   char *alias[QUERY_MAXALIAS];
   uint32 aliasttl[QUERY_MAXALIAS];
   char localip[4];
+  char senderip[4];
   char type[2];
   char class[2];
   struct dns_transmit dt;
 } ;
 
-extern int query_start(struct query *,char *,char *,char *,char *);
+extern int query_start(struct query *,char *,char *,char *,char *, char *);
 extern void query_io(struct query *,iopause_fd *,struct taia *);
 extern int query_get(struct query *,iopause_fd *,struct taia *);
 

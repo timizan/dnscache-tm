@@ -119,7 +119,7 @@ void u_new(void)
 
   x->active = ++numqueries; ++uactive;
   log_query(&x->active,x->ip,x->port,x->id,q,qtype);
-  switch(query_start(&x->q,q,qtype,qclass,myipoutgoing)) {
+  switch(query_start(&x->q,q,qtype,qclass,myipoutgoing,x->ip)) {
     case -1:
       u_drop(j);
       return;
@@ -254,7 +254,7 @@ void t_rw(int j)
 
   x->active = ++numqueries;
   log_query(&x->active,x->ip,x->port,x->id,q,qtype);
-  switch(query_start(&x->q,q,qtype,qclass,myipoutgoing)) {
+  switch(query_start(&x->q,q,qtype,qclass,myipoutgoing,x->ip)) {
     case -1:
       t_drop(j);
       return;
@@ -316,7 +316,6 @@ static void doit(void)
   struct taia stamp;
   int iolen;
   int r;
-
   for (;;) {
     taia_now(&stamp);
     taia_uint(&deadline,120);
