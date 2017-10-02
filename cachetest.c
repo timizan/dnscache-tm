@@ -6,6 +6,7 @@
 int main(int argc,char **argv)
 {
   int i;
+  int j;
   char *x;
   char *y;
   unsigned int u;
@@ -17,8 +18,12 @@ int main(int argc,char **argv)
 
   while (x = *argv++) {
     i = str_chr(x,':');
+    j = str_chr(x,'-');
     if (x[i])
       cache_set(x,i,x + i + 1,str_len(x) - i - 1,86400);
+    else if (x[j]) {
+      cache_del(x,j);
+    }
     else {
       y = cache_get(x,i,&u,&ttl);
       if (y)
