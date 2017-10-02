@@ -181,6 +181,29 @@ void cache_set(const char *key,unsigned int keylen,const char *data,unsigned int
   cache_motion += entrylen;
 }
 
+
+int cache_del(const char *key,unsigned int keylen)
+{
+  uint32 prevpos;
+  uint32 pos;
+  unsigned int keyhash;
+
+  if (!x) return 0;
+  if (keylen > MAXKEYLEN) return 0;
+
+  keyhash = hash(key,keylen);
+  pos = get4(keyhash);
+  if (pos) {
+      prevpos = get4(pos) ^ keyhash;
+      set4(keyhash, prevpos);
+      if (prevpos)  {
+          set4(prevpos, get4(prevpos) ^ keyhash ^ pos);
+      }
+      return 1;
+  }
+  return 0; 
+}
+
 int cache_init(unsigned int cachesize)
 {
   if (x) {
