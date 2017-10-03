@@ -4,6 +4,9 @@
 #include "exit.h"
 #include "tai.h"
 #include "cache.h"
+#include "domain_cache.h"
+#include "str.h"
+#include "uint64.h"
 
 uint64 cache_motion = 0;
 
@@ -201,7 +204,7 @@ int cache_del(const char *key,unsigned int keylen)
       }
       return 1;
   }
-  return 0; 
+  return 0;
 }
 
 int cache_init(unsigned int cachesize)
@@ -227,4 +230,114 @@ int cache_init(unsigned int cachesize)
   unused = size;
 
   return 1;
+}
+
+/* Cache getter function for Domain entries.
+ * The function gets domain name and subdomain from the key
+ * looks up the address of the cache of subdomains from top level cache 
+ *  - address_of_subdomain_cache <- top_level_cache(domain)
+ *  - data <- subdomain_cache(subdomain)
+ */
+char *cache_get_domain_entry(const char *key,unsigned int keylen,unsigned int *datalen,uint32 *ttl)
+{
+   char domain[MAXKEYLEN];
+   char subdomain[MAXKEYLEN];
+   int i;
+   int domainlen;
+   int subdomainlen;
+   char *res;
+   uint64 cache_address;
+   unsigned int resultlen;
+   struct domain_cache *dc;
+   char *data = 0;
+
+   i = str_rchr(key,'.');
+   if (i < keylen - 1) {
+      byte_copy(subdomain,i,key); subdomainlen = i;
+      byte_copy(domain, keylen - i -1, key + i + 1); domainlen = keylen -i -1;
+   } else {
+      subdomainlen = 0;
+      byte_copy(domain, i, key); domainlen = i;
+   }
+   if (subdomainlen > 0) {
+       res = cache_get(domain, domainlen, &resultlen, ttl);
+       if (res) {
+           uint64_unpack(res, &cache_address);
+           dc = (struct domain_cache *) cache_address;
+           data = domain_cache_get(dc, subdomain, subdomainlen, datalen, ttl);
+       }
+   }
+   return data;
+}
+
+/* 
+ * Cache setter function for Domain entries.
+ * The function gets domain name and subdomain from the key
+ * sets subdomain entries in a separate cache.
+ * address of the cache is stored in the top level cache 
+ *   - top level cache -> (domain, address_of_subdomain_cache)
+ *   - subdomain cache -> (subdomain, data)
+ */
+void cache_set_domain_entry(const char *key,unsigned int keylen,const char *data,unsigned int datalen,uint32 ttl)
+{
+    char domain[MAXKEYLEN];
+    char subdomain[MAXKEYLEN];
+    int i;
+    int domainlen;
+    int subdomainlen;
+    char *res;
+    uint64 cache_address;
+    unsigned int resultlen;
+    struct domain_cache *dc;
+    char addr_buf[8];
+    uint32 d_ttl;
+
+    i = str_rchr(key,'.');
+    if (i < keylen - 1) {
+      byte_copy(subdomain,i,key); subdomainlen = i;
+      byte_copy(domain, keylen - i -1, key + i + 1); domainlen = keylen -i -1;
+    } else {
+      subdomainlen = 0;
+      byte_copy(domain, i, key); domainlen = i;
+    }
+    res = cache_get(domain, domainlen, &resultlen, &d_ttl);
+    if (res) {
+       uint64_unpack(res, &cache_address);
+       dc = (struct domain_cache *) cache_address;
+    } else {
+        dc = domain_cache_init(10000);
+        cache_address = (uint64) dc;
+        uint64_pack(addr_buf, cache_address);
+        cache_set(domain, domainlen, addr_buf, 8, ttl);
+    }
+
+    if (subdomainlen > 0) {
+        domain_cache_set(dc, subdomain, subdomainlen, data, datalen, ttl);
+    }
+
+}
+
+/*
+ * 
+ * Deletes cache holding subdomain entries of a domain
+ * subdomain cache address <- top_level_cache(domain)
+ */
+int cache_del_subdomains(const char *key,unsigned int keylen)
+{
+    char *res;
+    unsigned int resultlen;
+    uint32 d_ttl;
+    uint64 cache_address;
+    struct domain_cache *dc;
+
+    res = cache_get(key, keylen, &resultlen, &d_ttl);
+    if (res) {
+       uint64_unpack(res, &cache_address);
+       dc = (struct domain_cache *) cache_address;
+       domain_cache_delete(dc);
+       return cache_del(key, keylen); 
+    } else {
+        return 0;
+    }
+          
 }
