@@ -152,14 +152,28 @@ compile cache.c alloc.h byte.h uint32.h exit.h tai.h uint64.h cache.h \
 uint32.h uint64.h
 	./compile cache.c
 
+domain_cache.o: \
+compile domain_cache.c alloc.h byte.h uint32.h exit.h tai.h uint64.h cache.h \
+uint32.h uint64.h
+	./compile domain_cache.c
+
 cachetest: \
-load cachetest.o cache.o libtai.a buffer.a alloc.a unix.a byte.a
-	./load cachetest cache.o libtai.a buffer.a alloc.a unix.a \
-	byte.a 
+load cachetest.o domain_cache.o cache.o libtai.a buffer.a alloc.a unix.a byte.a
+	./load cachetest domain_cache.o cache.o libtai.a buffer.a alloc.a unix.a \
+	byte.a uint64_pack.o uint64_unpack.o
 
 cachetest.o: \
 compile cachetest.c buffer.h exit.h cache.h uint32.h uint64.h str.h
 	./compile cachetest.c
+
+domain_cache_test: \
+load domain_cache_test.o cache.o libtai.a buffer.a alloc.a unix.a byte.a
+	./load domain_cache_test cache.o domain_cache.o libtai.a buffer.a alloc.a unix.a \
+	byte.a uint64_pack.o uint64_unpack.o
+
+domain_cache_test.o: \
+compile domain_cache_test.c buffer.h exit.h cache.h uint32.h uint64.h str.h
+	./compile domain_cache_test.c
 
 case_diffb.o: \
 compile case_diffb.c case.h
@@ -212,7 +226,7 @@ warn-auto.sh choose.sh conf-home
 compile: \
 warn-auto.sh conf-cc
 	( cat warn-auto.sh; \
-	echo exec "`head -1 conf-cc`" '-c $${1+"$$@"}' \
+	echo exec "`head -1 conf-cc`" '-c -g $${1+"$$@"}' \
 	) > compile
 	chmod 755 compile
 
@@ -318,12 +332,12 @@ stralloc.h iopause.h taia.h tai.h uint64.h taia.h
 	./compile dns_txt.c
 
 dnscache: \
-load dnscache.o droproot.o okclient.o log.o cache.o query.o \
+load dnscache.o droproot.o okclient.o log.o domain_cache.o cache.o query.o \
 response.o dd.o roots.o iopause.o prot.o dns.a env.a alloc.a buffer.a \
-libtai.a unix.a byte.a socket.lib
-	./load dnscache droproot.o okclient.o log.o cache.o \
+libtai.a unix.a byte.a socket.lib uint64_pack.o uint64_unpack.o
+	./load dnscache droproot.o okclient.o log.o domain_cache.o cache.o \
 	query.o response.o dd.o roots.o iopause.o prot.o dns.a \
-	env.a alloc.a buffer.a libtai.a unix.a byte.a  `cat \
+	env.a alloc.a buffer.a libtai.a unix.a byte.a  uint64_pack.o uint64_unpack.o `cat \
 	socket.lib`
 
 dnscache-conf: \
@@ -342,9 +356,16 @@ dnscache.o: \
 compile dnscache.c env.h exit.h scan.h strerr.h error.h ip4.h \
 uint16.h uint64.h socket.h uint16.h dns.h stralloc.h gen_alloc.h \
 iopause.h taia.h tai.h uint64.h taia.h taia.h byte.h roots.h fmt.h \
-iopause.h query.h dns.h uint32.h alloc.h response.h uint32.h cache.h \
+iopause.h query.h dns.h uint32.h alloc.h response.h uint32.h domain_cache.h cache.h \
 uint32.h uint64.h ndelay.h log.h uint64.h okclient.h droproot.h
 	./compile dnscache.c
+
+testcache: \
+load testcache.o log.o cache.o
+
+testcache.o: \
+compile testcache.c log.h cache.h \
+    ./compile testcache.c
 
 dnsfilter: \
 load dnsfilter.o iopause.o getopt.a dns.a env.a libtai.a alloc.a \
@@ -677,7 +698,7 @@ dnscache-conf dnscache walldns-conf walldns rbldns-conf rbldns \
 rbldns-data pickdns-conf pickdns pickdns-data tinydns-conf tinydns \
 tinydns-data tinydns-get tinydns-edit axfr-get axfrdns-conf axfrdns \
 dnsip dnsipq dnsname dnstxt dnsmx dnsfilter random-ip dnsqr dnsq \
-dnstrace dnstracesort cachetest utime rts
+dnstrace dnstracesort cachetest utime rts domain_cache_test
 
 prot.o: \
 compile prot.c hasshsgr.h prot.h
@@ -1059,6 +1080,14 @@ compile uint32_pack.c uint32.h
 uint32_unpack.o: \
 compile uint32_unpack.c uint32.h
 	./compile uint32_unpack.c
+
+uint64_pack.o: \
+compile uint64_pack.c uint64.h
+	./compile uint64_pack.c
+
+uint64_unpack.o: \
+compile uint64_unpack.c uint64.h
+	./compile uint64_unpack.c
 
 uint64.h: \
 choose compile load tryulong64.c uint64.h1 uint64.h2
